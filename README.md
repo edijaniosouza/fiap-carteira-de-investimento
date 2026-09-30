@@ -49,9 +49,11 @@ npm run dev                 # http://localhost:3000
 `prisma/seed.ts` é idempotente (upsert por `code`):
 
 1. **Ativos da B3** via `brapi.dev/api/quote/list` (funciona sem token; ignora mercado fracionário). Sem internet, usa uma amostra fixa.
-2. **Tesouro Direto** a partir de `prisma/data/treasury_prices.csv`. Baixe manualmente o arquivo
-   *PrecoTaxaTesouroDireto.csv* no portal [Tesouro Transparente](https://www.tesourotransparente.gov.br/ckan/dataset/taxas-dos-titulos-ofertados-pelo-tesouro-direto)
-   e salve com esse nome. Sem o arquivo, são criados 3 títulos de exemplo.
+2. **Tesouro Direto** a partir de `prisma/data/treasury_prices.csv` (já incluso no repositório; cópia do
+   *PrecoTaxaTesouroDireto.csv* do portal [Tesouro Transparente](https://www.tesourotransparente.gov.br/ckan/dataset/taxas-dos-titulos-ofertados-pelo-tesouro-direto)).
+   Para atualizar os preços, baixe o arquivo novamente e substitua-o:
+   `curl -L -o prisma/data/treasury_prices.csv "https://www.tesourotransparente.gov.br/ckan/dataset/df56aa42-484a-4a59-8184-7676580c81e3/resource/796d2059-14e9-44e3-80c9-2d9e30b405c1/download/PrecoTaxaTesouroDireto.csv"`.
+   Sem o arquivo, são criados 3 títulos de exemplo.
 3. **Índices** CDI, Selic e IPCA com a taxa atual do BCB (SGS 4389, 432 e 13522).
 4. **CDBs de exemplo** (100% CDI, 110% CDI, Pré 12%, IPCA + 6%).
 
