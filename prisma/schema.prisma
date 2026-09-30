@@ -1,0 +1,127 @@
+// Naming convention: models/enums in PascalCase, fields in snake_case,
+// tables in plural snake_case (@@map).
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum AssetType {
+  STOCK
+  FII
+  ETF
+  BDR
+  TREASURY
+  CDB
+  INDEX
+}
+
+enum AssetSource {
+  BRAPI
+  BCB
+  SEED
+}
+
+enum TransactionType {
+  BUY
+  SELL
+}
+
+enum Indexer {
+  PRE
+  CDI
+  SELIC
+  IPCA
+}
+
+model User {
+  id            String   @id @default(cuid())
+  name          String
+  email         String   @unique
+  password_hash String
+  created_at    DateTime @default(now())
+
+  portfolios            Portfolio[]
+  password_reset_tokens PasswordResetToken[]
+
+  @@map("users")
+}
+
+model PasswordResetToken {
+  id         String    @id @default(cuid())
+  user_id    String
+  token_hash String    @unique
+  expires_at DateTime
+  used_at    DateTime?
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@map("password_reset_tokens")
+}
+
+model Portfolio {
+  id         String   @id @default(cuid())
+  user_id    String
+  name       String
+  created_at DateTime @default(now())
+
+  user         User          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@index([user_id])
+  @@map("portfolios")
+}
+
+model Asset {
+  id            String      @id @default(cuid())
+  code          String      @unique
+  name          String
+  type          AssetType
+  source        AssetSource
+  indexer       Indexer?
+  // Fixed income rate: % of the index for CDI/SELIC (e.g. 110 = 110% CDI),
+  // annual spread for IPCA (e.g. 6.5 = IPCA + 6.5%), annual rate for PRE.
+  rate          Decimal?    @db.Decimal(10, 4)
+  maturity_date DateTime?
+
+  transactions Transaction[]
+  quote        Quote?
+
+  @@index([type])
+  @@index([name])
+  @@map("assets")
+}
+
+model Transaction {
+  id           String          @id @default(cuid())
+  portfolio_id String
+  asset_id     String
+  type         TransactionType
+  quantity     Decimal         @db.Decimal(20, 8)
+  unit_price   Decimal         @db.Decimal(20, 8)
+  trade_date   DateTime        @db.Date
+  created_at   DateTime        @default(now())
+
+  portfolio Portfolio @relation(fields: [portfolio_id], references: [id], onDelete: Cascade)
+  asset     Asset     @relation(fields: [asset_id], references: [id])
+
+  @@index([portfolio_id, asset_id, trade_date])
+  @@map("transactions")
+}
+
+model Quote {
+  id         String      @id @default(cuid())
+  asset_id   String      @unique
+  value      Decimal     @db.Decimal(20, 8)
+  source     AssetSource
+  updated_at DateTime
+
+  asset Asset @relation(fields: [asset_id], references: [id], onDelete: Cascade)
+
+  @@map("quotes")
+}
