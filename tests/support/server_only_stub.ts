@@ -1,0 +1,2 @@
+// Replaces the "server-only" guard in tests (see vitest.config.mts).
+export {};
