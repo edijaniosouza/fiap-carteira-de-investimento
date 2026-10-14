@@ -119,35 +119,36 @@ flowchart LR
 ## Endpoints da API
 
 ### Auth
-- `POST /api/auth/cadastro`
-- `POST /api/auth/login`
-- `POST /api/auth/logout`
-- `POST /api/auth/recuperar-senha`
-- `GET /api/auth/perfil`
-- `PATCH /api/auth/perfil`
+- `POST /api/auth/sign_up` — cadastro
+- `POST /api/auth/sign_in` — login
+- `POST /api/auth/sign_out` — logout
+- `POST /api/auth/forgot_password` — solicita o link de recuperação de senha
+- `POST /api/auth/reset_password` — redefine a senha a partir do token recebido
+- `GET /api/auth/profile` — dados do perfil
+- `PATCH /api/auth/profile` — edição do perfil
 
 ### Catálogo
-- `GET /api/catalogo?tipo=&q=&page=&limit=` — busca e paginação de ativos disponíveis (renda fixa/variável)
+- `GET /api/catalog?type=&q=&page=&limit=` — busca e paginação de ativos disponíveis (renda fixa/variável)
 
 ### Carteiras
-- `GET /api/carteiras`
-- `POST /api/carteiras`
-- `GET /api/carteiras/:id` — visão consolidada (dashboard)
-- `PATCH /api/carteiras/:id`
-- `DELETE /api/carteiras/:id`
+- `GET /api/portfolios`
+- `POST /api/portfolios`
+- `GET /api/portfolios/:id` — visão consolidada (dashboard)
+- `PATCH /api/portfolios/:id`
+- `DELETE /api/portfolios/:id`
 
 ### Transações (investimentos dentro de uma carteira)
-- `GET /api/carteiras/:id/transacoes`
-- `POST /api/carteiras/:id/transacoes`
-- `PATCH /api/carteiras/:id/transacoes/:transacaoId`
-- `DELETE /api/carteiras/:id/transacoes/:transacaoId`
-- `GET /api/carteiras/:id/posicoes` — posição consolidada (quantidade, preço médio, resultado)
+- `GET /api/portfolios/:id/transactions`
+- `POST /api/portfolios/:id/transactions`
+- `PATCH /api/portfolios/:id/transactions/:transaction_id`
+- `DELETE /api/portfolios/:id/transactions/:transaction_id`
+- `GET /api/portfolios/:id/positions` — posição consolidada (quantidade, preço médio, resultado)
 
 ### Simulação
-- `POST /api/simulacoes` — simula um investimento com base na taxa/cotação atual
+- `POST /api/simulations` — simula um investimento com base na taxa/cotação atual
 
 ### Cotações (mercado)
-- `GET /api/cotacoes/:ativoId` — cotação atual do ativo, com cache de 30 minutos
+- `GET /api/quotes/:asset_id` — cotação atual do ativo, com cache de 30 minutos
 
 ## Tecnologia definida
 
