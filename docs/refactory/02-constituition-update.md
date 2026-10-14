@@ -1,0 +1,1 @@
+O arquivo @.ai/architecture.md lista os endpoints em português. Atualize o arquivo para refletir a atual nomenclura
