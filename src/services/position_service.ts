@@ -1,3 +1,4 @@
+import { QUANTITY_EPSILON } from "@/lib/numbers";
 import { sort_timeline, type TimelineEntry } from "@/services/timeline_validation";
 
 export type PositionTransaction = TimelineEntry & {
@@ -14,8 +15,6 @@ export type PositionCore = {
   /** Quantity-weighted purchase date of the open position (used to accrue fixed income). */
   average_trade_date: Date | null;
 };
-
-const QUANTITY_EPSILON = 1e-8;
 
 type Accumulator = {
   quantity: number;

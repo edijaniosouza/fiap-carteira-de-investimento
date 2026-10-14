@@ -3,8 +3,13 @@ import type { z } from "zod";
 import type { Asset } from "@/generated/prisma/client";
 import { is_variable_income } from "@/lib/asset_labels";
 import { AppError } from "@/lib/errors";
+import { round_money } from "@/lib/numbers";
 import type { simulation_schema } from "@/lib/validators/portfolio_validators";
-import { get_investable_asset, to_asset_summary_dto } from "@/services/catalog_service";
+import {
+  get_asset_rate,
+  get_investable_asset,
+  to_asset_summary_dto,
+} from "@/services/catalog_service";
 import { income_tax_rate, resolve_annual_rate } from "@/services/fixed_income";
 import { get_index_rates, get_quote } from "@/services/market/market_data_service";
 import type {
@@ -17,6 +22,7 @@ import type {
 type SimulationInput = z.infer<typeof simulation_schema>;
 
 const DAYS_PER_MONTH = 30;
+const MONTHS_PER_YEAR = 12;
 
 /** Mock annual returns used to project variable income scenarios. */
 const VARIABLE_INCOME_SCENARIOS: { name: ScenarioName; annual_return: number }[] = [
@@ -25,12 +31,8 @@ const VARIABLE_INCOME_SCENARIOS: { name: ScenarioName; annual_return: number }[]
   { name: "OPTIMISTIC", annual_return: 0.2 },
 ];
 
-function round_money(value: number): number {
-  return Math.round(value * 100) / 100;
-}
-
 function monthly_rate_from_annual(annual_rate: number): number {
-  return Math.pow(1 + annual_rate, 1 / 12) - 1;
+  return Math.pow(1 + annual_rate, 1 / MONTHS_PER_YEAR) - 1;
 }
 
 async function simulate_fixed_income(
@@ -38,11 +40,7 @@ async function simulate_fixed_income(
   input: SimulationInput,
 ): Promise<FixedIncomeSimulationDto> {
   const index_rates = await get_index_rates();
-  const annual_rate = resolve_annual_rate(
-    asset.indexer,
-    asset.rate == null ? null : Number(asset.rate),
-    index_rates,
-  );
+  const annual_rate = resolve_annual_rate(asset.indexer, get_asset_rate(asset), index_rates);
   if (annual_rate == null) {
     throw new AppError(
       422,
@@ -95,7 +93,7 @@ async function simulate_variable_income(
   const invested_amount = share_quantity * quote.value;
   const leftover = input.amount - invested_amount;
   const project = (annual_return: number, month: number) =>
-    round_money(invested_amount * Math.pow(1 + annual_return, month / 12) + leftover);
+    round_money(invested_amount * Math.pow(1 + annual_return, month / MONTHS_PER_YEAR) + leftover);
 
   const [pessimistic, base, optimistic] = VARIABLE_INCOME_SCENARIOS;
   return {

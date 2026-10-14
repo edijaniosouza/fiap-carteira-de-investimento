@@ -4,6 +4,19 @@ import type { Indexer } from "@/types/api";
 export type IndexRates = Partial<Record<Indexer, number>>;
 
 const DAYS_PER_YEAR = 365;
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+/**
+ * Brazilian regressive income tax table for fixed income: the rate of the
+ * first bracket whose `max_days` covers the holding period applies.
+ */
+const INCOME_TAX_BRACKETS: readonly { max_days: number; rate: number }[] = [
+  { max_days: 180, rate: 0.225 },
+  { max_days: 360, rate: 0.2 },
+  { max_days: 720, rate: 0.175 },
+];
+/** Rate for holding periods longer than the last bracket. */
+const LONG_TERM_INCOME_TAX_RATE = 0.15;
 
 /**
  * Resolves the effective annual rate (ratio, 0.12 = 12%) of a fixed income asset.
@@ -38,13 +51,12 @@ export function accrue(value: number, annual_rate: number, days: number): number
 }
 
 export function days_between(from: Date, to: Date): number {
-  return Math.floor((to.getTime() - from.getTime()) / (24 * 60 * 60 * 1000));
+  return Math.floor((to.getTime() - from.getTime()) / MS_PER_DAY);
 }
 
-/** Brazilian regressive income tax table for fixed income. */
+/** Brazilian regressive income tax rate for a fixed income holding period. */
 export function income_tax_rate(days: number): number {
-  if (days <= 180) return 0.225;
-  if (days <= 360) return 0.2;
-  if (days <= 720) return 0.175;
-  return 0.15;
+  return (
+    INCOME_TAX_BRACKETS.find((bracket) => days <= bracket.max_days)?.rate ?? LONG_TERM_INCOME_TAX_RATE
+  );
 }

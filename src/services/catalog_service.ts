@@ -3,9 +3,15 @@ import type { z } from "zod";
 import type { Asset, Quote } from "@/generated/prisma/client";
 import type { Prisma } from "@/generated/prisma/client";
 import { AppError, not_found_error } from "@/lib/errors";
+import { to_utc_iso_date } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import type { catalog_query_schema } from "@/lib/validators/portfolio_validators";
 import type { AssetDto, AssetSummaryDto, PaginatedResponse } from "@/types/api";
+
+/** Contracted rate of a fixed income asset as a plain number (null for variable income). */
+export function get_asset_rate(asset: Pick<Asset, "rate">): number | null {
+  return asset.rate == null ? null : Number(asset.rate);
+}
 
 export function to_asset_summary_dto(asset: Asset): AssetSummaryDto {
   return {
@@ -14,7 +20,7 @@ export function to_asset_summary_dto(asset: Asset): AssetSummaryDto {
     name: asset.name,
     type: asset.type,
     indexer: asset.indexer,
-    rate: asset.rate == null ? null : Number(asset.rate),
+    rate: get_asset_rate(asset),
   };
 }
 
@@ -22,7 +28,7 @@ export function to_asset_dto(asset: Asset & { quote: Quote | null }): AssetDto {
   return {
     ...to_asset_summary_dto(asset),
     source: asset.source,
-    maturity_date: asset.maturity_date?.toISOString().slice(0, 10) ?? null,
+    maturity_date: asset.maturity_date ? to_utc_iso_date(asset.maturity_date) : null,
     last_price: asset.quote ? Number(asset.quote.value) : null,
     last_price_updated_at: asset.quote?.updated_at.toISOString() ?? null,
   };

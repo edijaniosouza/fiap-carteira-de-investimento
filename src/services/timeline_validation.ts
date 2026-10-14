@@ -1,3 +1,4 @@
+import { QUANTITY_EPSILON } from "@/lib/numbers";
 import type { TransactionType } from "@/types/api";
 
 export type TimelineEntry = {
@@ -13,7 +14,8 @@ export type TimelineViolation = {
   balance: number;
 };
 
-const QUANTITY_EPSILON = 1e-8;
+/** On the same trade date, buys are applied before sells. */
+const TYPE_ORDER: Record<TransactionType, number> = { BUY: 0, SELL: 1 };
 
 /**
  * Orders entries chronologically. On the same trade date, buys come before
@@ -23,7 +25,7 @@ export function sort_timeline<T extends TimelineEntry>(entries: T[]): T[] {
   return [...entries].sort(
     (a, b) =>
       a.trade_date.getTime() - b.trade_date.getTime() ||
-      (a.type === b.type ? 0 : a.type === "BUY" ? -1 : 1) ||
+      TYPE_ORDER[a.type] - TYPE_ORDER[b.type] ||
       a.created_at.getTime() - b.created_at.getTime(),
   );
 }

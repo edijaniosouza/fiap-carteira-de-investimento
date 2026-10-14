@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { AssetType, TransactionType } from "@/generated/prisma/enums";
+import { to_utc_iso_date } from "@/lib/format";
 
 export const portfolio_schema = z.object({
   name: z.string().trim().min(1, "Informe o nome da carteira").max(60, "Nome muito longo"),
@@ -7,7 +8,7 @@ export const portfolio_schema = z.object({
 
 const trade_date_schema = z.iso
   .date("Data inválida (use AAAA-MM-DD)")
-  .refine((value) => value <= new Date().toISOString().slice(0, 10), {
+  .refine((value) => value <= to_utc_iso_date(new Date()), {
     message: "A data não pode estar no futuro",
   });
 

@@ -28,11 +28,15 @@ function hash_reset_token(token: string): string {
   return createHash("sha256").update(token).digest("hex");
 }
 
-export async function sign_up(input: z.infer<typeof sign_up_schema>): Promise<UserDto> {
-  const existing_user = await prisma.user.findUnique({ where: { email: input.email } });
-  if (existing_user) {
+async function assert_email_available(email: string): Promise<void> {
+  const email_owner = await prisma.user.findUnique({ where: { email } });
+  if (email_owner) {
     throw new AppError(409, "EMAIL_IN_USE", "Já existe uma conta com este e-mail");
   }
+}
+
+export async function sign_up(input: z.infer<typeof sign_up_schema>): Promise<UserDto> {
+  await assert_email_available(input.email);
   const user = await prisma.user.create({
     data: {
       name: input.name,
@@ -114,7 +118,8 @@ export async function update_profile(
     throw not_found_error("Usuário não encontrado");
   }
 
-  const is_sensitive_change = Boolean(input.new_password) || (input.email && input.email !== user.email);
+  const new_email = input.email && input.email !== user.email ? input.email : null;
+  const is_sensitive_change = Boolean(input.new_password) || new_email != null;
   if (is_sensitive_change) {
     const is_valid = await verify_password(input.current_password ?? "", user.password_hash);
     if (!is_valid) {
@@ -124,11 +129,8 @@ export async function update_profile(
     }
   }
 
-  if (input.email && input.email !== user.email) {
-    const email_owner = await prisma.user.findUnique({ where: { email: input.email } });
-    if (email_owner) {
-      throw new AppError(409, "EMAIL_IN_USE", "Já existe uma conta com este e-mail");
-    }
+  if (new_email) {
+    await assert_email_available(new_email);
   }
 
   const updated_user = await prisma.user.update({

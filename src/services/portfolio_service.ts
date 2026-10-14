@@ -4,9 +4,10 @@ import type { Asset, Portfolio } from "@/generated/prisma/client";
 import { is_variable_income } from "@/lib/asset_labels";
 import { AppError, not_found_error } from "@/lib/errors";
 import { FREE_PLAN_LIMITS } from "@/lib/free_plan";
+import { round_money, round_quantity } from "@/lib/numbers";
 import { prisma } from "@/lib/prisma";
 import type { portfolio_schema } from "@/lib/validators/portfolio_validators";
-import { to_asset_summary_dto } from "@/services/catalog_service";
+import { get_asset_rate, to_asset_summary_dto } from "@/services/catalog_service";
 import {
   accrue,
   days_between,
@@ -28,14 +29,6 @@ import type {
   PositionDto,
   PriceStatus,
 } from "@/types/api";
-
-function round_money(value: number): number {
-  return Math.round(value * 100) / 100;
-}
-
-function round_quantity(value: number): number {
-  return Math.round(value * 1e8) / 1e8;
-}
 
 function to_portfolio_dto(portfolio: Portfolio, transaction_count: number): PortfolioDto {
   return {
@@ -113,6 +106,12 @@ type PriceInfo = {
   price_updated_at: string | null;
 };
 
+const UNAVAILABLE_PRICE: Readonly<PriceInfo> = {
+  current_price: null,
+  price_status: "UNAVAILABLE",
+  price_updated_at: null,
+};
+
 function price_position(
   core: PositionCore,
   asset: Asset,
@@ -127,11 +126,7 @@ function price_position(
     };
   }
   if (!is_variable_income(asset.type) && core.average_trade_date) {
-    const annual_rate = resolve_annual_rate(
-      asset.indexer,
-      asset.rate == null ? null : Number(asset.rate),
-      index_rates,
-    );
+    const annual_rate = resolve_annual_rate(asset.indexer, get_asset_rate(asset), index_rates);
     if (annual_rate != null) {
       const days = days_between(core.average_trade_date, new Date());
       return {
@@ -141,7 +136,7 @@ function price_position(
       };
     }
   }
-  return { current_price: null, price_status: "UNAVAILABLE", price_updated_at: null };
+  return UNAVAILABLE_PRICE;
 }
 
 function to_position_dto(core: PositionCore, asset: Asset, price: PriceInfo): PositionDto {
@@ -191,10 +186,10 @@ async function build_positions(portfolio_id: string): Promise<PositionDto[]> {
   return cores
     .map((core) => {
       const asset = assets.get(core.asset_id) as Asset;
-      const price: PriceInfo =
+      const price =
         core.quantity > 0
           ? price_position(core, asset, quotes.get(core.asset_id), index_rates)
-          : { current_price: null, price_status: "UNAVAILABLE", price_updated_at: null };
+          : UNAVAILABLE_PRICE;
       return to_position_dto(core, asset, price);
     })
     .sort((a, b) => b.current_value - a.current_value || a.asset.code.localeCompare(b.asset.code));

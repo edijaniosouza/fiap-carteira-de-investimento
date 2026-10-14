@@ -2,7 +2,8 @@ import "server-only";
 import type { z } from "zod";
 import type { Asset, Prisma, Transaction } from "@/generated/prisma/client";
 import { AppError, not_found_error } from "@/lib/errors";
-import { format_date } from "@/lib/format";
+import { format_date, to_utc_iso_date } from "@/lib/format";
+import { round_money } from "@/lib/numbers";
 import { prisma } from "@/lib/prisma";
 import type {
   transaction_schema,
@@ -29,8 +30,8 @@ function to_transaction_dto(transaction: Transaction & { asset: Asset }): Transa
     type: transaction.type,
     quantity,
     unit_price,
-    total: Math.round(quantity * unit_price * 100) / 100,
-    trade_date: transaction.trade_date.toISOString().slice(0, 10),
+    total: round_money(quantity * unit_price),
+    trade_date: to_utc_iso_date(transaction.trade_date),
     created_at: transaction.created_at.toISOString(),
   };
 }
@@ -81,7 +82,7 @@ async function assert_valid_timeline(
 
   const violation = find_negative_balance(entries);
   if (violation) {
-    const trade_date = violation.trade_date.toISOString().slice(0, 10);
+    const trade_date = to_utc_iso_date(violation.trade_date);
     throw new AppError(
       422,
       "NEGATIVE_BALANCE",

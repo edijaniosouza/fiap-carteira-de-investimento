@@ -33,6 +33,11 @@ export function format_date_time(iso_date: string | null | undefined): string {
   return iso_date ? DATE_TIME_FORMATTER.format(new Date(iso_date)) : "—";
 }
 
+/** YYYY-MM-DD in UTC (how trade and maturity dates are stored). */
+export function to_utc_iso_date(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
 /** YYYY-MM-DD in the user's local timezone (toISOString would shift to UTC). */
 export function to_local_iso_date(date: Date): string {
   const month = String(date.getMonth() + 1).padStart(2, "0");
